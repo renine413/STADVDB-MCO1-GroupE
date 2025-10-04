@@ -54,35 +54,6 @@ npx serve -s build
 # or install globally: npm install -g serve ; serve -s build
 ```
 
-## Common issue: 'react-scripts' is not recognized
-
-If you see an error like:
-
-```
-'react-scripts' is not recognized as an internal or external command,
-operable program or batch file.
-```
-
-It usually means dependencies were not installed or `node_modules` is missing. Fixes:
-
-1. Run `npm install` from the project root.
-2. Do NOT install `react-scripts` globally. It should remain a local dependency.
-3. If problems persist, try deleting `node_modules` and `package-lock.json`, then reinstall:
-
-```powershell
-rm -Recurse -Force node_modules
-del package-lock.json
-npm install
-```
-
-Or use PowerShell's aliases if `rm`/`del` aren't available on your shell.
-
-You can also run the local binary via `npx` which will prefer the project's installed copy:
-
-```powershell
-npx react-scripts build
-```
-
 
 
 
