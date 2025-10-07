@@ -1,0 +1,7 @@
+indicator,gender,value,low_ci,high_ci
+Symptoms of Anxiety Disorder,Female,32.00277777777777,31.08055555555556,32.93611111111111
+Symptoms of Anxiety Disorder,Male,24.523611111111112,23.441666666666666,25.640277777777776
+Symptoms of Anxiety Disorder or Depressive Disorder,Female,36.22083333333333,35.25972222222222,37.19305555555556
+Symptoms of Anxiety Disorder or Depressive Disorder,Male,29.429166666666667,28.279166666666665,30.60138888888889
+Symptoms of Depressive Disorder,Female,24.115277777777777,23.218055555555555,25.030555555555555
+Symptoms of Depressive Disorder,Male,21.191666666666666,20.12777777777778,22.275
