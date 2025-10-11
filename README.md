@@ -54,6 +54,12 @@ npx serve -s build
 # or install globally: npm install -g serve ; serve -s build
 ```
 
+## Install Python dependencies:
+```powershell
+pip install pandas numpy python-dotenv sqlalchemy pymysql mysql-connector-python openpyxl jupyter
+```
+
+# Change password for MySql Server Code
 
 
 
