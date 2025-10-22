@@ -1,96 +1,105 @@
--- 1. Correlation between Sleep and Stress (ROLL-UP)
-
-SELECT 
-    age_group,
+-- 1. Correlation between Sleep and Stress (ROLLUP, SLICE, DICE)
+SELECT
     gender,
-    ROUND(AVG(avg_sleep_hours_x), 2) AS avg_sleep,
-    ROUND(AVG(avg_stress_level), 2) AS avg_stress,
-    CASE 
-        WHEN GROUPING(age_group) = 1 AND GROUPING(gender) = 1 THEN 'Overall Average'
-        WHEN GROUPING(gender) = 1 THEN CONCAT(age_group, ' (All Genders)')
-        ELSE CONCAT(age_group, ' - ', gender)
-    END AS grouping_level
+    CASE
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END AS age_group,
+	ROUND(AVG(avg_sleep_duration), 2) AS avg_sleep,
+    ROUND(AVG(avg_stress_level), 2) AS avg_stress_level
 FROM fact_student_summary
-GROUP BY ROLLUP (age_group, gender)
-ORDER BY age_group, gender;
+WHERE gender ='Female' -- Application filter applied here
+AND age BETWEEN 18 AND 20 -- Application filter applied here 
+GROUP BY gender, age_group with ROLLUP;
 
--- 2. Mental Risk Indicators (DICE)
-SELECT 
-    age_group,
+-- 2. Mental Risk Indicators (ROLLUP, SLICE, DICE)
+SELECT
     gender,
-    ROUND(AVG(avg_stress_level), 2) AS avg_stress,
-    ROUND(AVG(avg_addicted_score), 2) AS avg_addiction,
-    ROUND(AVG(avg_mental_health_score), 2) AS avg_mh_score
-FROM fact_student_summary
-WHERE avg_stress_level > 1
-  AND avg_addicted_score > 4
-  AND avg_sleep_hours_x < 8
-GROUP BY age_group, gender
-ORDER BY avg_stress DESC;
-
-
--- 3. Impact of Social Media Addiction on Academic Performance
--- Step 1: Roll-up summary (all students)
-SELECT 
-    ROUND(AVG(avg_addicted_score), 2) AS overall_addiction,
-    ROUND(AVG(avg_cgpa), 2) AS overall_cgpa,
-    ROUND(AVG(avg_stress_level), 2) AS overall_stress
-FROM fact_student_summary;
-
--- Step 2: Drill-down by gender and age group
-SELECT 
-    gender,
-    age_group,
-    ROUND(AVG(avg_addicted_score), 2) AS avg_addiction,
+    CASE
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END AS age_group,
+    ROUND(AVG(avg_addicted_score), 2) AS avg_addicted_score,
     ROUND(AVG(avg_cgpa), 2) AS avg_cgpa,
-    ROUND(AVG(avg_stress_level), 2) AS avg_stress
+    ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
 FROM fact_student_summary
-GROUP BY gender, age_group
-ORDER BY gender, age_group;
+WHERE gender ='Female'  -- Application filter applied here
+AND age BETWEEN 18 AND 20  -- Application filter applied here
+GROUP BY gender, age_group with ROLLUP;
 
--- 4. Gender & Age Group Comparison of Stress and Mental Health
--- Slice for Female students only
+-- 3. Impact of Social Media Addiction on Academic Performance (ROLLUP, SLICE, DICE) 
 SELECT 
-    age_group,
-    ROUND(AVG(avg_stress_level), 2) AS avg_stress,
-    ROUND(AVG(avg_mental_health_score), 2) AS avg_mh
+    gender,
+    CASE
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END AS age_group,
+    ROUND(AVG(avg_addicted_score), 2) AS avg_addicted_score,
+    ROUND(AVG(avg_cgpa), 2) AS avg_cgpa
 FROM fact_student_summary
 WHERE gender = 'Female'
-GROUP BY age_group
-ORDER BY age_group;
+  AND age BETWEEN 18 AND 20
+GROUP BY gender, age_group WITH ROLLUP
+ORDER BY gender, age_group;
 
-
--- Slice for Male students only
+-- 4. Gender & Age Group Comparison of Stress and Mental Health 
+-- Age Group (ROLLUP, DICE)
 SELECT 
-    age_group,
+    CASE 
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END AS age_group,
+    ROUND(AVG(avg_stress_level), 2) AS avg_stress_level,
+    ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
+FROM fact_student_summary
+WHERE CASE
+            WHEN age BETWEEN 18 AND 20 THEN '18–20'
+            WHEN age BETWEEN 21 AND 23 THEN '21–23'
+            ELSE '24+'
+        END = '18–20'  -- Application filter applied here 
+GROUP BY age_group WITH ROLLUP
+ORDER BY 
+    CASE 
+        WHEN age_group = '18–20' THEN 1
+        WHEN age_group = '21–23' THEN 2
+        ELSE 3
+    END;
+
+-- Gender (DRILLDOWN)
+SELECT 
+    gender,
     ROUND(AVG(avg_stress_level), 2) AS avg_stress,
     ROUND(AVG(avg_mental_health_score), 2) AS avg_mh
 FROM fact_student_summary
-WHERE gender = 'Male'
-GROUP BY age_group
-ORDER BY age_group;
+WHERE gender = 'Female' -- Application filter applied here 
+GROUP BY gender WITH ROLLUP
+ORDER BY gender;
 
--- Slice for Both genders 
-SELECT 
-    gender,
-    age_group,
-    ROUND(AVG(avg_stress_level), 2) AS avg_stress,
-    ROUND(AVG(avg_mental_health_score), 2) AS avg_mh
+-- 5. Social Media Addiction and Mental Health (ROLLUP, DICE)
+SELECT
+	gender, 
+    CASE 
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END AS age_group,
+    ROUND(AVG(avg_academic_pressure), 2) AS avg_academic_pressure,
+    ROUND(AVG(avg_sleep_hours_x), 2) AS avg_sleep,
+    ROUND(AVG(avg_work_study_hours), 2) AS avg_work_study_hours,
+    ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
 FROM fact_student_summary
-GROUP BY gender, age_group
-ORDER BY age_group, gender;
+WHERE gender = 'Female' -- Application filter applied here
+AND age BETWEEN 18 AND 20  -- Application filter applied here
+GROUP BY age_group, gender WITH ROLLUP
+ORDER BY 
+    CASE 
+        WHEN age_group = '18–20' THEN 1
+        WHEN age_group = '21–23' THEN 2
+        ELSE 3
+    END;
 
--- 5. Social Media Addiction and Mental Health
 
-SELECT 
-    age_group,
-    gender,
-    ROUND(AVG(avg_addicted_score), 2) AS avg_addiction,
-    ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health,
-    ROUND(AVG(avg_academic_pressure), 2) AS avg_acad_pressure,
-    ROUND(AVG(avg_work_study_hours), 2) AS avg_work_pressure,
-    ROUND(AVG(avg_sleep_duration), 2) AS avg_sleep
-FROM fact_student_summary
-WHERE avg_addicted_score > 5
-GROUP BY ROLLUP (age_group, gender)
-ORDER BY age_group, gender;
