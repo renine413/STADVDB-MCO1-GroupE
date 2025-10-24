@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback} from "react";
 import axios from "axios";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -20,7 +20,7 @@ function Dashboard() {
   const [genderAge, setGenderAge] = useState({ byGender: [], byAge: [] });
   const [trend, setTrend] = useState([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async() => {
     const params = { gender: filters.gender, ageRange: filters.ageRange };
     const [s1, s2, s3, s4, s5] = await Promise.all([
       axios.get("/api/sleep-stress", { params }),
@@ -34,9 +34,11 @@ function Dashboard() {
     setSocialImpact(s3.data);
     setGenderAge(s4.data);
     setTrend(s5.data);
-  };
+  }, [filters]);
 
-  useEffect(() => { fetchData(); }, [filters]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="dashboard-container">
@@ -74,49 +76,83 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* 1️⃣ Sleep vs Stress */}
+      
 {/* 1️⃣ Sleep vs Stress */}
-  <div className="chart-card">
-    <h3>1. Correlation between Sleep and Stress</h3>
-    <ResponsiveContainer width="100%" height={300}>
-      <ScatterChart>
-        <CartesianGrid />
-        <XAxis dataKey="sleep" name="Sleep (hrs)" />
-        <YAxis dataKey="stress" name="Stress Level" domain={[0, 10]} />
-        <Tooltip
-          cursor={{ strokeDasharray: "3 3" }}
-          formatter={(value, name, props) => [value, name === "sleep" ? "Sleep (hrs)" : "Stress"]}
-          labelFormatter={() => ""}
-          content={({ payload }) => {
-            if (!payload || !payload.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div
-                style={{
-                  background: "white",
-                  border: "1px solid #ccc",
-                  padding: "6px 8px",
-                  borderRadius: "8px"
-                }}
-              >
-                <p><b>Gender:</b> {d.gender || "All"}</p>
-                <p><b>Age Group:</b> {d.ageGroup || "All Ages"}</p>
-                <p><b>Sleep (hrs):</b> {d.sleep}</p>
-                <p><b>Stress:</b> {d.stress}</p>
-              </div>
-            );
-          }}
-        />
-        <Scatter
-          name="All Genders"
-          data={sleepStress}
-          fill="#8884d8"
-          shape="circle"
-          line={{ stroke: "#8884d8", strokeWidth: 1 }}
-        />
-      </ScatterChart>
-    </ResponsiveContainer>
-  </div>
+<div className="chart-card">
+  <h3>1. Correlation between Sleep and Stress</h3>
+  <ResponsiveContainer width="100%" height={480}>
+    <ScatterChart >
+      <CartesianGrid />
+      <XAxis
+        type="number"
+        dataKey="sleep"
+        name="Sleep (hrs)"
+        domain = {[6.2,6.6]}
+        tickCount={8}
+        label={{ value: "Average Sleep (hrs)", position: "bottom",offset: 10}} // adds spacing from axis
+      />
+      <YAxis
+        type="number"
+        dataKey="stress"
+        name="Stress Level"
+        domain={[0, 10]}
+
+        label={{ value: "Average Stress (0–10)", angle: -90, position: "inside",dx: -10 }}
+      />
+      <Tooltip
+        cursor={{ strokeDasharray: "3 3" }}
+        content={({ payload }) => {
+          if (!payload || !payload.length) return null;
+          const d = payload[0].payload;
+          return (
+            <div
+              style={{
+                background: "white",
+                border: "1px solid #ccc",
+                padding: "6px 8px",
+                borderRadius: "8px"
+              }}
+            >
+              <p><b>Gender:</b> {d.gender || "All"}</p>
+              <p><b>Age Group:</b> {d.ageGroup || "All Ages"}</p>
+              <p><b>Sleep (hrs):</b> {d.sleep}</p>
+              <p><b>Stress:</b> {d.stress}</p>
+            </div>
+          );
+        }}
+      />
+      <Legend        
+        layout="horizontal"
+        align="right"
+        verticalAlign="bottom"
+        wrapperStyle={{
+          bottom: 0,
+          right: 20,
+          fontSize: 13,
+          paddingBottom: 10,
+        }}/>
+
+      {/* 🔹 Female Data */}
+      <Scatter
+        name="Female"
+        data={sleepStress.filter((d) => d.gender === "Female")}
+        fill="#E57373"
+        shape="circle"
+        
+      />
+
+      {/* 🔹 Male Data */}
+      <Scatter
+        name="Male"
+        data={sleepStress.filter((d) => d.gender === "Male")}
+        fill="#64B5F6"
+        shape="circle"
+        strokeWidth = '1'
+      />
+    </ScatterChart>
+  </ResponsiveContainer>
+</div>
+
 
       {/* 2️⃣ Mental Risk Indicators */}
       <div className="chart-card">

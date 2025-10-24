@@ -1,6 +1,6 @@
-import express from "express";
-import cors from "cors";
-import mysql from "mysql2";
+const express = require("express");
+const cors = require("cors");
+const mysql = require("mysql2");
 
 const app = express();
 app.use(cors());
@@ -35,29 +35,18 @@ app.get("/api/sleep-stress", (req, res) => {
       WHEN age BETWEEN 18 AND 20 THEN '18–20'
       WHEN age BETWEEN 21 AND 23 THEN '21–23'
       ELSE '24+'
-    END
+    END AS age_group
   `;
-
-  // ✅ Dynamically handle "All" vs specific ranges
-  const groupBy =
-    ageRange === "All"
-      ? `GROUP BY gender, ${ageCase} WITH ROLLUP`
-      : "";
-
-  // ✅ When filtering specific ranges, omit non-aggregated columns
-  const selectCols =
-    ageRange === "All"
-      ? `gender, ${ageCase} AS age_group,`
-      : "";
 
   const sql = `
     SELECT
-        ${selectCols}
-        ROUND(AVG(avg_sleep_duration), 2) AS avg_sleep,
-        ROUND(AVG(avg_stress_level), 2) AS avg_stress_level
+      gender,
+      ${ageCase},
+      ROUND(AVG(avg_sleep_duration), 2) AS avg_sleep,
+      ROUND(AVG(avg_stress_level), 2) AS avg_stress_level
     FROM fact_student_summary
     WHERE ${genderClause} AND ${ageClause}
-    ${groupBy};
+    GROUP BY gender, age_group;
   `;
 
   db.query(sql, (err, rows) => {
@@ -66,24 +55,19 @@ app.get("/api/sleep-stress", (req, res) => {
       return res.status(500).json({ error: err.message });
     }
 
-    if (!rows || !rows.length) return res.json([]);
-
     const formatted = rows
-    .filter(r => r.avg_sleep !== null && r.avg_stress_level !== null)
-    .map(r => ({
-      gender: r.gender || "All",
-      ageGroup: r.age_group || "All Ages",
-      sleep: r.avg_sleep,
-      stress: r.avg_stress_level
-    }));
+      .filter(r => r.avg_sleep !== null && r.avg_stress_level !== null)
+      .map(r => ({
+        gender: r.gender || "All",
+        ageGroup: r.age_group || "All Ages",
+        sleep: Number(r.avg_sleep),
+        stress: Number(r.avg_stress_level)
+      }));
 
-    res.json(formatted.length ? formatted : [{
-      sleep: rows[0].avg_sleep || 0,
-      stress: rows[0].avg_stress_level || 0,
-      label: "Filtered Group"
-    }]);
+    res.json(formatted);
   });
 });
+
 
 
 
