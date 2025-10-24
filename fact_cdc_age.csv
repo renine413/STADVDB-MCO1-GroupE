@@ -1,13 +1,13 @@
 indicator,age,value,low_ci,high_ci
-Symptoms of Anxiety Disorder,18 - 29 years,41.0,38.452777777777776,43.579166666666666
-Symptoms of Anxiety Disorder,30 - 39 years,34.702777777777776,33.03611111111111,36.41388888888889
-Symptoms of Anxiety Disorder,40 - 49 years,30.833333333333332,29.21388888888889,32.50555555555556
-Symptoms of Anxiety Disorder,50 - 59 years,27.208333333333332,25.67361111111111,28.787499999999998
-Symptoms of Anxiety Disorder or Depressive Disorder,18 - 29 years,47.83611111111111,45.19305555555556,50.483333333333334
-Symptoms of Anxiety Disorder or Depressive Disorder,30 - 39 years,39.28333333333333,37.55416666666667,41.045833333333334
-Symptoms of Anxiety Disorder or Depressive Disorder,40 - 49 years,34.90277777777778,33.24027777777778,36.606944444444444
-Symptoms of Anxiety Disorder or Depressive Disorder,50 - 59 years,31.293055555555554,29.666666666666668,32.952777777777776
-Symptoms of Depressive Disorder,18 - 29 years,35.087500000000006,32.55138888888889,37.67638888888889
-Symptoms of Depressive Disorder,30 - 39 years,26.6875,25.061111111111114,28.375
-Symptoms of Depressive Disorder,40 - 49 years,23.352777777777778,21.852777777777778,24.913888888888888
-Symptoms of Depressive Disorder,50 - 59 years,21.48888888888889,20.03472222222222,22.991666666666667
+Symptoms of Anxiety Disorder,18 - 29 years,40.42,37.980000000000004,42.88
+Symptoms of Anxiety Disorder,30 - 39 years,34.38,32.739999999999995,36.06
+Symptoms of Anxiety Disorder,40 - 49 years,32.04,30.139999999999997,34.0
+Symptoms of Anxiety Disorder,50 - 59 years,29.860000000000003,28.04,31.8
+Symptoms of Anxiety Disorder or Depressive Disorder,18 - 29 years,47.56,44.839999999999996,50.28
+Symptoms of Anxiety Disorder or Depressive Disorder,30 - 39 years,39.36,37.58,41.14
+Symptoms of Anxiety Disorder or Depressive Disorder,40 - 49 years,36.739999999999995,34.86,38.7
+Symptoms of Anxiety Disorder or Depressive Disorder,50 - 59 years,34.46,32.54,36.42
+Symptoms of Depressive Disorder,18 - 29 years,35.82000000000001,33.08,38.54
+Symptoms of Depressive Disorder,30 - 39 years,27.080000000000002,25.46,28.74
+Symptoms of Depressive Disorder,40 - 49 years,25.04,23.34,26.78
+Symptoms of Depressive Disorder,50 - 59 years,24.32,22.56,26.119999999999997
