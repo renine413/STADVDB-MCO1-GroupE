@@ -9,132 +9,179 @@ app.use(express.json());
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "password", // update if needed
+  password: "password", // update as needed
   database: "olap_dashboard"
 });
 
-// Helper for filters
+// 🔹 Helper for dynamic filter clauses
 function getFilterClauses(gender, ageRange) {
-  let genderClause = gender && gender !== "All" ? `gender = '${gender}'` : "1=1";
+  const genderClause = gender === "All" ? "1=1" : `gender = '${gender}'`;
+
   let ageClause = "1=1";
   if (ageRange === "18–20") ageClause = "age BETWEEN 18 AND 20";
   else if (ageRange === "21–23") ageClause = "age BETWEEN 21 AND 23";
   else if (ageRange === "24+") ageClause = "age >= 24";
+  // "All" will leave ageClause = 1=1 (no restriction)
   return { genderClause, ageClause };
 }
 
-// Correlation between Sleep and Stress
+// ✅ 1️⃣ Correlation between Sleep and Stress
 app.get("/api/sleep-stress", (req, res) => {
-  const { gender = "All", ageRange = "18–20" } = req.query;
+  const { gender = "All", ageRange = "All" } = req.query;
   const { genderClause, ageClause } = getFilterClauses(gender, ageRange);
+
+  const ageCase = `
+    CASE
+      WHEN age BETWEEN 18 AND 20 THEN '18–20'
+      WHEN age BETWEEN 21 AND 23 THEN '21–23'
+      ELSE '24+'
+    END
+  `;
+
+  // ✅ Dynamically handle "All" vs specific ranges
+  const groupBy =
+    ageRange === "All"
+      ? `GROUP BY gender, ${ageCase} WITH ROLLUP`
+      : "";
+
+  // ✅ When filtering specific ranges, omit non-aggregated columns
+  const selectCols =
+    ageRange === "All"
+      ? `gender, ${ageCase} AS age_group,`
+      : "";
 
   const sql = `
     SELECT
-        gender,
-        CASE
-            WHEN age BETWEEN 18 AND 20 THEN '18–20'
-            WHEN age BETWEEN 21 AND 23 THEN '21–23'
-            ELSE '24+'
-        END AS age_group,
+        ${selectCols}
         ROUND(AVG(avg_sleep_duration), 2) AS avg_sleep,
         ROUND(AVG(avg_stress_level), 2) AS avg_stress_level
     FROM fact_student_summary
-    WHERE ${genderClause} AND ${ageClause }
-    GROUP BY gender, age_group WITH ROLLUP;
+    WHERE ${genderClause} AND ${ageClause}
+    ${groupBy};
   `;
 
   db.query(sql, (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) {
+      console.error("SQL ERROR in /api/sleep-stress:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!rows || !rows.length) return res.json([]);
+
     const formatted = rows
-      .filter(r => r.avg_sleep && r.avg_stress_level)
-      .map(r => ({ sleep: r.avg_sleep, stress: r.avg_stress_level }));
-    res.json(formatted);
+    .filter(r => r.avg_sleep !== null && r.avg_stress_level !== null)
+    .map(r => ({
+      gender: r.gender || "All",
+      ageGroup: r.age_group || "All Ages",
+      sleep: r.avg_sleep,
+      stress: r.avg_stress_level
+    }));
+
+    res.json(formatted.length ? formatted : [{
+      sleep: rows[0].avg_sleep || 0,
+      stress: rows[0].avg_stress_level || 0,
+      label: "Filtered Group"
+    }]);
   });
 });
 
-// Mental Risk Indicators
+
+
+// ✅ 2️⃣ Mental Health Risk Indicators
 app.get("/api/mental-health-indicators", (req, res) => {
-  const { gender = "All", ageRange = "18–20" } = req.query;
+  const { gender = "All", ageRange = "All" } = req.query;
   const { genderClause, ageClause } = getFilterClauses(gender, ageRange);
 
   const sql = `
     SELECT
-        gender,
-        CASE
-            WHEN age BETWEEN 18 AND 20 THEN '18–20'
-            WHEN age BETWEEN 21 AND 23 THEN '21–23'
-            ELSE '24+'
-        END AS age_group,
-        ROUND(AVG(avg_addicted_score), 2) AS avg_addicted_score,
-        ROUND(AVG(avg_cgpa), 2) AS avg_cgpa,
-        ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
+        ROUND(AVG(avg_stress_level), 2) AS avg_stress,
+        ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health,
+        ROUND(AVG(avg_addicted_score), 2) AS avg_addiction,
+        ROUND(AVG(avg_phq9_score), 2) AS avg_phq9
     FROM fact_student_summary
-    WHERE ${genderClause} AND ${ageClause}
-    GROUP BY gender, age_group WITH ROLLUP;
+    WHERE ${genderClause} AND ${ageClause};
   `;
 
   db.query(sql, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    if (!rows.length) return res.json([]);
+    const r = rows[0] || {};
 
-    const latest = rows[0]; // single group summary
     const formatted = [
-      { factor: "Addiction", value: latest.avg_addicted_score || 0 },
-      { factor: "Academic", value: latest.avg_cgpa || 0 },
-      { factor: "Mental Health", value: latest.avg_mental_health_score || 0 },
+      { factor: "Stress", value: r.avg_stress || 0 },
+      { factor: "Mental Health", value: r.avg_mental_health || 0 },
+      { factor: "Addiction", value: r.avg_addiction || 0 },
+      { factor: "PHQ-9 Score", value: r.avg_phq9 || 0 },
     ];
     res.json(formatted);
   });
 });
 
-// Impact of Social Media Addiction on Academic Performance
+// ✅ 3️⃣ Social Media Impact
 app.get("/api/social-media-impact", (req, res) => {
-  const { gender = "All", ageRange = "18–20" } = req.query;
+  const { gender = "All", ageRange = "All" } = req.query;
   const { genderClause, ageClause } = getFilterClauses(gender, ageRange);
+
+  const ageCase = `
+    CASE
+      WHEN age BETWEEN 18 AND 20 THEN '18–20'
+      WHEN age BETWEEN 21 AND 23 THEN '21–23'
+      ELSE '24+'
+    END
+  `;
+
+  const groupBy =
+    ageRange === "All"
+      ? `GROUP BY ${ageCase} WITH ROLLUP`
+      : ""; // no grouping when filtering to one range
 
   const sql = `
     SELECT 
-        gender,
-        CASE
-            WHEN age BETWEEN 18 AND 20 THEN '18–20'
-            WHEN age BETWEEN 21 AND 23 THEN '21–23'
-            ELSE '24+'
-        END AS age_group,
-        ROUND(AVG(avg_addicted_score), 2) AS avg_addicted_score,
-        ROUND(AVG(avg_cgpa), 2) AS avg_cgpa
+      ${ageRange === "All" ? `${ageCase} AS age_group,` : ""}
+      ROUND(AVG(avg_addicted_score), 2) AS avg_addicted_score,
+      ROUND(AVG(avg_cgpa), 2) AS avg_cgpa
     FROM fact_student_summary
     WHERE ${genderClause} AND ${ageClause}
-    GROUP BY gender, age_group WITH ROLLUP
-    ORDER BY gender, age_group;
+    ${groupBy};
   `;
 
   db.query(sql, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    const formatted = rows
-      .filter(r => r.avg_addicted_score && r.avg_cgpa)
-      .map(r => ({
-        level: r.age_group || "All",
-        addiction: r.avg_addicted_score,
-        gpa: r.avg_cgpa
-      }));
+
+    let formatted;
+
+    if (ageRange === "All") {
+      formatted = rows
+        .filter(r => r.avg_addicted_score && r.avg_cgpa)
+        .map(r => ({
+          level: r.age_group || "All Ages",
+          addiction: r.avg_addicted_score,
+          gpa: r.avg_cgpa,
+        }));
+    } else {
+      const r = rows[0] || {};
+      formatted = [
+        {
+          level: ageRange,
+          addiction: r.avg_addicted_score || 0,
+          gpa: r.avg_cgpa || 0,
+        },
+      ];
+    }
+
     res.json(formatted);
   });
 });
 
-// Gender & Age Group Comparison of Stress and Mental Health
-app.get("/api/gender-age-comparison", (req, res) => {
-  const { gender = "All", ageRange = "18–20" } = req.query;
-  const { genderClause, ageClause } = getFilterClauses(gender, ageRange);
 
+// ✅ 4️⃣ Gender & Age Group Comparison
+app.get("/api/gender-age-comparison", (req, res) => {
   const sqlGender = `
     SELECT 
         gender,
         ROUND(AVG(avg_stress_level), 2) AS avg_stress,
         ROUND(AVG(avg_mental_health_score), 2) AS avg_mh
     FROM fact_student_summary
-    WHERE ${genderClause}
-    GROUP BY gender WITH ROLLUP
-    ORDER BY gender;
+    GROUP BY gender WITH ROLLUP;
   `;
 
   const sqlAge = `
@@ -147,14 +194,7 @@ app.get("/api/gender-age-comparison", (req, res) => {
         ROUND(AVG(avg_stress_level), 2) AS avg_stress_level,
         ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
     FROM fact_student_summary
-    WHERE ${ageClause}
-    GROUP BY age_group WITH ROLLUP
-    ORDER BY 
-        CASE 
-            WHEN age_group = '18–20' THEN 1
-            WHEN age_group = '21–23' THEN 2
-            ELSE 3
-        END;
+    GROUP BY age_group WITH ROLLUP;
   `;
 
   db.query(sqlGender, (err, genderRows) => {
@@ -168,7 +208,7 @@ app.get("/api/gender-age-comparison", (req, res) => {
           mentalHealth: r.avg_mh || 0
         })),
         byAge: ageRows.map(r => ({
-          ageGroup: r.age_group || "All",
+          ageGroup: r.age_group || "All Ages",
           stress: r.avg_stress_level || 0,
           mentalHealth: r.avg_mental_health_score || 0
         }))
@@ -177,45 +217,61 @@ app.get("/api/gender-age-comparison", (req, res) => {
   });
 });
 
-// Social Media Addiction and Mental Health Trend
+
+// ✅ 5️⃣ Social Media Addiction & Mental Health Trend
 app.get("/api/addiction-trend", (req, res) => {
-  const { gender = "All", ageRange = "18–20" } = req.query;
+  const { gender = "All", ageRange = "All" } = req.query;
   const { genderClause, ageClause } = getFilterClauses(gender, ageRange);
+
+  const ageCase = `
+    CASE 
+        WHEN age BETWEEN 18 AND 20 THEN '18–20'
+        WHEN age BETWEEN 21 AND 23 THEN '21–23'
+        ELSE '24+'
+    END
+  `;
+
+  // only group if we are viewing "All" age ranges
+  const groupBy = ageRange === "All" ? `GROUP BY ${ageCase} WITH ROLLUP` : "";
 
   const sql = `
     SELECT
-      gender,
-      CASE 
-          WHEN age BETWEEN 18 AND 20 THEN '18–20'
-          WHEN age BETWEEN 21 AND 23 THEN '21–23'
-          ELSE '24+'
-      END AS age_group,
+      ${ageRange === "All" ? `${ageCase} AS age_group,` : ""}
       ROUND(AVG(avg_academic_pressure), 2) AS avg_academic_pressure,
-      ROUND(AVG(avg_sleep_hours_x), 2) AS avg_sleep,
-      ROUND(AVG(avg_work_study_hours), 2) AS avg_work_study_hours,
       ROUND(AVG(avg_mental_health_score), 2) AS avg_mental_health_score
     FROM fact_student_summary
     WHERE ${genderClause} AND ${ageClause}
-    GROUP BY age_group, gender WITH ROLLUP
-    ORDER BY 
-      CASE 
-          WHEN age_group = '18–20' THEN 1
-          WHEN age_group = '21–23' THEN 2
-          ELSE 3
-      END;
+    ${groupBy};
   `;
 
   db.query(sql, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    const formatted = rows
-      .filter(r => r.avg_mental_health_score && r.avg_academic_pressure)
-      .map(r => ({
-        ageGroup: r.age_group || "All",
-        addiction: r.avg_academic_pressure || 0,
-        mentalHealth: r.avg_mental_health_score || 0
-      }));
+
+    let formatted;
+    if (ageRange === "All") {
+      formatted = rows
+        .filter(r => r.avg_academic_pressure && r.avg_mental_health_score)
+        .map(r => ({
+          ageGroup: r.age_group || "All Ages",
+          addiction: r.avg_academic_pressure,
+          mentalHealth: r.avg_mental_health_score,
+        }));
+    } else {
+      const r = rows[0] || {};
+      formatted = [
+        {
+          ageGroup: ageRange,
+          addiction: r.avg_academic_pressure || 0,
+          mentalHealth: r.avg_mental_health_score || 0,
+        },
+      ];
+    }
+
     res.json(formatted);
   });
 });
 
-app.listen(5000, () => console.log("✅ OLAP API running on http://localhost:5000"));
+
+app.listen(5000, () =>
+  console.log(" OLAP API running on http://localhost:5000")
+);
