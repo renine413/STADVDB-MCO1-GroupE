@@ -1,3 +1,7 @@
+Notes:
+Technical Paper, Presentation Slides, Schema (MCO1.mwb) and ETL (etl.ipynb) are in the root project directory.
+
+
 # OLAP Dashboard
 
 Short run and build instructions for the OLAP Dashboard React app.
