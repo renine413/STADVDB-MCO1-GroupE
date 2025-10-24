@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback} from "react";
 import axios from "axios";
 import {
-  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip,
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, Legend,
   LineChart, Line, ResponsiveContainer,
@@ -80,14 +80,14 @@ function Dashboard() {
 {/* 1️⃣ Sleep vs Stress */}
 <div className="chart-card">
   <h3>1. Correlation between Sleep and Stress</h3>
-  <ResponsiveContainer width="100%" height={480}>
+  <ResponsiveContainer width="100%" height={400}>
     <ScatterChart >
       <CartesianGrid />
       <XAxis
         type="number"
         dataKey="sleep"
         name="Sleep (hrs)"
-        domain = {[6.2,6.6]}
+        domain={["dataMin - 0.2", "dataMax + 0.2"]}
         tickCount={8}
         label={{ value: "Average Sleep (hrs)", position: "bottom",offset: 10}} // adds spacing from axis
       />
@@ -95,32 +95,36 @@ function Dashboard() {
         type="number"
         dataKey="stress"
         name="Stress Level"
-        domain={[0, 10]}
-
+        domain={[2, 10]}
         label={{ value: "Average Stress (0–10)", angle: -90, position: "inside",dx: -10 }}
       />
-      <Tooltip
+      <ZAxis dataKey="stress" range={[60, 60]} />
+        <Tooltip
         cursor={{ strokeDasharray: "3 3" }}
-        content={({ payload }) => {
-          if (!payload || !payload.length) return null;
-          const d = payload[0].payload;
+        content={({ active, payload }) => {
+          if (!active || !payload || !payload.length) return null;
+          const point = payload[0]?.payload;
+          if (!point) return null;
+
           return (
             <div
               style={{
                 background: "white",
                 border: "1px solid #ccc",
                 padding: "6px 8px",
-                borderRadius: "8px"
+                borderRadius: "8px",
               }}
             >
-              <p><b>Gender:</b> {d.gender || "All"}</p>
-              <p><b>Age Group:</b> {d.ageGroup || "All Ages"}</p>
-              <p><b>Sleep (hrs):</b> {d.sleep}</p>
-              <p><b>Stress:</b> {d.stress}</p>
+              <p><b>Gender:</b> {point.gender}</p>
+              <p><b>Age Group:</b> {point.ageGroup}</p>
+              <p><b>Sleep (hrs):</b> {point.sleep}</p>
+              <p><b>Stress:</b> {point.stress}</p>
             </div>
           );
         }}
       />
+
+
       <Legend        
         layout="horizontal"
         align="right"
@@ -147,7 +151,7 @@ function Dashboard() {
         data={sleepStress.filter((d) => d.gender === "Male")}
         fill="#64B5F6"
         shape="circle"
-        strokeWidth = '1'
+        strokeWidth = '0.5'
       />
     </ScatterChart>
   </ResponsiveContainer>

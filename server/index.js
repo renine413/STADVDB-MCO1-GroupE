@@ -46,7 +46,7 @@ app.get("/api/sleep-stress", (req, res) => {
       ROUND(AVG(avg_stress_level), 2) AS avg_stress_level
     FROM fact_student_summary
     WHERE ${genderClause} AND ${ageClause}
-    GROUP BY gender, age_group;
+    GROUP BY gender, age_group WITH ROLLUP;
   `;
 
   db.query(sql, (err, rows) => {
@@ -67,6 +67,7 @@ app.get("/api/sleep-stress", (req, res) => {
     res.json(formatted);
   });
 });
+
 
 
 
