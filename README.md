@@ -60,6 +60,6 @@ pip install pandas numpy python-dotenv sqlalchemy pymysql mysql-connector-python
 ```
 
 # Change password for MySql Server Code
-
-
+Make sure to change etl.ipynb on the section "3.Load" when running. I have added comments for you to run it.
+You also have to change the index.js in the server folder inside the root project directory.
 
